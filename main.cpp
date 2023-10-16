@@ -28,8 +28,8 @@ double dro_dt(double x, double t)
 
 double dro_u_dx(double x, double t)
 {
-  return exp(t)*cos(2*M_PI*t)*(4*M_PI*cos(4*M_PI*x)*(cos(3*M_PI*x) + 1.5)
-         - 3*M_PI*sin(3*M_PI*x)*sin(4*M_PI*x));
+  return exp(t)*cos(2*M_PI*t)*(4*M_PI*cos(4*M_PI*x)*(cos(3*M_PI*x) + 1.5) -
+         3*M_PI*sin(3*M_PI*x)*sin(4*M_PI*x));
 }
 
 double du_dt(double x, double t)
@@ -44,12 +44,12 @@ double du_dx(double x, double t)
 
 double d2u_dx2(double x, double t)
 {
-  return (-16*M_PI*M_PI)*cos(2*M_PI*t)*sin(4*M_PI*x);
+  return (-16)*M_PI*M_PI*cos(2*M_PI*t)*sin(4*M_PI*x);
 }
 
 double dP_dx(double x, double t, double constant, double gamma)
 {
-  return (-3)*M_PI*constant*gamma*std::pow(((cos(3*M_PI*x)+1.5)*exp(t)),gamma)
+  return (-3)*M_PI*constant*gamma*std::pow(((cos(3*M_PI*x)+1.5)*exp(t)),gamma - 1)
          *exp(t)*sin(3*M_PI*x);
 }
 
@@ -63,6 +63,32 @@ double F0(double x, double t)
 {
   return dro_dt(x,t) + dro_u_dx(x,t);
 }
+
+  // double v_init(double x)
+  //   {
+  //     return sin(M_PI*x);
+  //   }
+  // double h_init(double x)
+  //   {
+  //     return 1;
+  //   }
+  // double h(double x, double t)
+  //   {
+  //     return 1;
+  //   }
+  // double v(double x, double t)
+  //   {
+  //     return sin(M_PI*x);
+  //   }
+  // double F0(double x, double t)
+  //   {
+  //     return (M_PI*cos(M_PI*x));
+  //   }
+  // double F(double x, double t, double constant, double gamma, double mu)
+  //   {
+  //     return M_PI*sin(M_PI*x)*cos(M_PI*x)+mu*M_PI*M_PI*sin(M_PI*x);
+  //   }
+
 
 int main (int argc, char * argv [])
 {
@@ -78,10 +104,12 @@ int main (int argc, char * argv [])
     std::vector<double> H;
 
     fill_h0_v0 (shem, V_old, H_old, V, H, v_init, h_init);
-    solve (gas, shem, V_old, H_old, V, H, F, F0);
+    if (solve (gas, shem, V_old, H_old, V, H, F, F0) < 0)
+      {
+        printf ("\n\nERROR!!!!\n\n");
+        return -1;
+      }
     get_residual_V(V, v, shem, gas, shem.n, res_test1);
-
-    print_v(V_old);
 
     fclose(res_test1);
     return 0;

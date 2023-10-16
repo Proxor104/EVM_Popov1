@@ -11,8 +11,8 @@ void param_diff(P_gas & gas)
 
 void param_she (P_gas & gas, P_she & shem)
 {
-  shem.h_x = 0.1;
-  shem.tau = 0.1;
+  shem.h_x = 0.01;
+  shem.tau = 0.01;
   shem.m_x = (int) (gas.segm_X / shem.h_x);
   shem.n = (int) (gas.segm_T/shem.tau);
   shem.dim = shem.m_x + 1;

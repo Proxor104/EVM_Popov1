@@ -19,13 +19,13 @@ int solve (P_gas & gas, P_she & shem, std::vector<double> & V_old,
   std::vector<double> beta;
   alpha.resize(M + 1);
   beta.resize(M + 1);
-  up_diag.resize(M);
-  down_diag.resize(M);
+  up_diag.resize(M + 1);
+  down_diag.resize(M + 1);
   mid_diag.resize(M + 1);
   right_vec.resize(M + 1);
   for(i = 1; i < N + 1; i++)
     {
-      if (get_eta(gas, shem, H) < 0)
+      if (get_eta(gas, shem, H_old) < 0)
         {
           return -1;
         }
@@ -61,103 +61,80 @@ int solve_step (const P_gas & gas, const P_she & shem,
   std::fill(beta.begin(), beta.end(), 0);
   // ---------------------------------------------------------------------------
   // вычисляем вектор V
-  up_diag[j] = (V_old[0] + V_old[1]) / (6 * h);
-  mid_diag[j] = 1 / tau + (2 * eta) / (h * h);
-  right_vec[j] = V_old[j] / tau - (constant * (std::pow(H_old[j + 1], gamma) -
-                 std::pow(H_old[j - 1], gamma)))/(2 * h * H_old[j]) -
-                 (eta - mu / H_old[j]) * (V_old[j - 1] - 2 * V_old[j] +
-                 V_old[j + 1]) / (h * h) +
-                 F(j * M, i * N, constant, gamma, mu);
-  for (j = 1; j < M - 2; j++)
+  j = 0;
+  // printf("\n === \n %10.3e\n === \n", std::pow(H_old[j - 1], gamma));
+  up_diag[j] = 0;
+  mid_diag[j] = 1;
+  down_diag[j] = 0;
+  right_vec[j] = 0;
+  for (j = 1; j < M; j++)
     {
-      up_diag[j] = (V_old[j] + V_old[j + 1]) / (6 * h);
+      up_diag[j] = (V_old[j] + V_old[j + 1]) / (6 * h) - eta / (h * h);
       down_diag[j] = ((-1) * (V_old[j] + V_old[j - 1])) / (6 * h) - (eta) / (h * h);
       mid_diag[j] = 1 / tau + (2 * eta) / (h * h);
       right_vec[j] = V_old[j] / tau - (constant * (std::pow(H_old[j + 1], gamma) -
                      std::pow(H_old[j - 1], gamma)))/(2 * h * H_old[j]) -
                      (eta - mu / H_old[j]) * (V_old[j - 1] - 2 * V_old[j] +
-                     V_old[j + 1]) / (h * h) +
-                     F(j * M, i * N, constant, gamma, mu);
+                     V_old[j + 1]) / (h * h) + F(j * h, i * tau, constant, gamma, mu);
+      // printf("\n==H_old[j]==\n%10.3e\n=====\n",std::pow(H_old[j + 1], gamma));
     }
-  down_diag[j] = ((-1) * (V_old[j] + V_old[j - 1])) / (6 * h) - (eta) / (h * h);
-  mid_diag[j] = 1 / tau + (2 * eta) / (h * h);
-  right_vec[j] = V_old[j] / tau - (constant * (std::pow(H_old[j + 1], gamma) -
-                 std::pow(H_old[j - 1], gamma)))/(2 * h * H_old[j]) -
-                 (eta - mu / H_old[j]) * (V_old[j - 1] - 2 * V_old[j] +
-                 V_old[j + 1]) / (h * h) +
-                 F(j * h, i * tau, constant, gamma, mu);
+  down_diag[j] = 0;
+  mid_diag[j] = 1;
+  up_diag[j] = 0;
+  right_vec[j] = 0;
   // метод прогонки для V
-  alpha[0] = (-1) * (up_diag[0]) / (mid_diag[0]);
-  beta[0] = (right_vec[0]) / (mid_diag[0]);
-  for (j = 1; j < M - 2; j++)
-    {
-      alpha[j] = (-1) * (up_diag[j])/(mid_diag[j]
-                 + down_diag[j] * alpha[j - 1]);
-      beta[j] = (right_vec[j] - down_diag[j] * beta[j - 1])/(mid_diag[j]
-                + down_diag[j] * alpha[j - 1]);
-    }
-  V[M - 1] = (right_vec[M - 2] - down_diag[M - 2] * beta[M - 3]) / (mid_diag[M - 2]
-             + down_diag[M - 2] * alpha[M - 3]);
-  for(j = M - 2; j >= 1; j--)
-    {
-      V[j] = V[j + 1] * alpha[j - 1] + beta[j - 1];
-    }
-  V[M] = 0; V[0] = 0;
+  run_through_method(up_diag, mid_diag, down_diag, right_vec, alpha, beta, V, M);
+  // print_v(V);
   // ---------------------------------------------------------------------------
   // вычисляем вектор H
   j = 0;
   up_diag[j] = (V[1]) / (2 * h);
-  mid_diag[j] = 1 / tau - (V[0]) / (2 * h);
+  mid_diag[j] = (1 / tau) - (V[0]) / (2 * h);
   down_diag[j] = 0;
   right_vec[j] = F0(0, tau * i) + H_old[j]/tau - H_old[j] * (V[j + 1] - V[j])/(2 * h) +
-                 (h/4) * ((H_old[j]*V_old[j] - 2*H_old[j+1]*V_old[j+1] +
-                 H_old[j+2]*V_old[j+2])/(h * h) - (1/2)*(H_old[j+1]*V_old[j+1] -
-                 2*H_old[j+2]*V_old[j+2] + H_old[j+3]*V_old[j+3])/(h * h) +
-                 H_old[j]*((V_old[j] - 2*V_old[j+1] + V_old[j+2])/(h * h) -
-                 (1/2)*(V_old[j+1] - 2*V_old[j+2] + V_old[j+3])/(h * h)));
+                 (1/(4*h)) * ((-5/2)*H_old[j+1]*V_old[j+1] + 2*H_old[j+2]*V_old[j+2]-
+                (1/2)*H_old[j+3]*V_old[j+3] + H_old[j]*(2*V_old[j] + (-5/2)*V_old[j+1] + 
+                2*V_old[j+2] - (1/2)*V_old[j+3]));
+  // printf("\n==right_vec==\n%10.3e\n=====\n",right_vec[j]);
   for (j = 1; j < M; j++)
    {
-     up_diag[j] = (V[j] + V[j + 1]) / (4 * h);
-     down_diag[j] = ((-1) * (V[j] + V[j - 1])) / (4 * h);
-     mid_diag[j] = 1 / tau;
-     right_vec[j] = F0(j * h, i * tau) + H_old[j]/tau - H_old[j] * (V[j+1]-V[j-1])/(2*h);
+    up_diag[j] = (V[j] + V[j + 1]) / (4 * h);
+    down_diag[j] = ((-1) * (V[j] + V[j - 1])) / (4 * h);
+    mid_diag[j] = 1 / tau;
+    right_vec[j] = F0(j * h, i * tau) + H_old[j]/tau - H_old[j] * (V[j+1]-V[j-1])/(2*h);
+    // printf("\n==right_vec==\n%10.3e\n=====\n",right_vec[j]);
    }
   up_diag[j] = 0;
-  mid_diag[j] = 1 / tau;
+  mid_diag[j] = 1 / tau + V[j] / (2*h);
   down_diag[j] = ((-1)*V[j-1])/(2*h);
   right_vec[j] = F0(h * j, tau * i) + (H_old[j])/tau - H_old[j] * (V[j] - V[j - 1])/(2 * h) -
-                 (h/2) * ((H_old[j-2]*V_old[j-2] - 2*H_old[j-1]*V_old[j-1] +
-                 H_old[j]*V_old[j])/(h * h) - (1/2)*(H_old[j-3]*V_old[j-3] -
-                 2*H_old[j-2]*V_old[j-2] + H_old[j-1]*V_old[j-1])/(h * h) +
-                 H_old[j]*((V_old[j-2] - 2*V_old[j-1] + V_old[j])/(h * h) -
-                 (1/2)*(V_old[j-3] - 2*V_old[j-1] + V_old[j])/(h * h)));
+                 (1/(4*h)) * ((-5/2)*H_old[j-1]*V_old[j-1] + 2*H_old[j-2]*V_old[j-2]-
+                (1/2)*H_old[j-3]*V_old[j-3] + H_old[j]*(2*V_old[j] + (-5/2)*V_old[j-1] + 
+                2*V_old[j-2] - (1/2)*V_old[j-3]));
+  // printf("\n==right_vec==\n%10.3e\n=====\n",right_vec[j]);
   //метод прогонки для H
-  alpha[0] = (-1) * (up_diag[0]) / (mid_diag[0]);
-  beta[0] = (right_vec[0]) / (mid_diag[0]);
-  for (j = 1; j < M; j++)
-    {
-      alpha[j] = (-1) * (up_diag[j])/(mid_diag[j]
-                 + down_diag[j] * alpha[j - 1]);
-      beta[j] = (right_vec[j] - down_diag[j] * beta[j - 1])/(mid_diag[j]
-                + down_diag[j] * alpha[j - 1]);
-    }
-  H[M] = (right_vec[M] - down_diag[M] * beta[M - 1]) / (mid_diag[M]
-         + down_diag[M] * alpha[M - 1]);
-  for(j = M - 1; j >= 0; j--)
-    {
-      H[j] = H[j + 1] * alpha[j] + beta[j];
-    }
+  run_through_method(up_diag, mid_diag, down_diag, right_vec, alpha, beta, H, M);
+  // print_v(H);
   // ---------------------------------------------------------------------------
-  j = 0;
-  for(const double & elem : V)
+  for(j = 0; j < M + 1; j++)
     {
-      V_old[j] = elem; j++;
+      V_old[j] = V[j];
     }
-  j = 0;
-  for(const double & elem : H)
+  for(j = 0; j < M + 1; j++)
     {
-      H_old[j] = elem; j++;
+      H_old[j] = H[j];
     }
+  // std::vector<double> vec;
+  // vec.resize(M + 1);
+  // for (j = 0; j < M + 1; j++)
+  //  {
+  //    up_diag[j] = -1;
+  //    down_diag[j] = 0;
+  //    mid_diag[j] = 1;
+  //    right_vec[j] = 1;
+  //  }
+  // run_through_method(up_diag, mid_diag, down_diag, right_vec, alpha, beta, vec, M);
+  // print_v(vec);
   return 0;
 }
 
@@ -184,17 +161,46 @@ int get_eta (const P_gas & gas, P_she & shem, std::vector<double> & H)
 {
   int i = 0;
   int M = shem.m_x;
-  double max = H[0];
-  for (i = 1; i < M + 1; i++)
-    {
-      if(H[i] > max)
-        {
-          max = H[i];
-        }
-    }
-  if (fabs(max) < EPS)
+  double mu = gas.mu;
+  if (fabs(H[i]) < EPS)
     {
       return -1;
+    }
+  double max = mu / H[0];
+  double tmp = 0;
+  for (i = 1; i < M + 1; i++)
+    {
+      tmp = mu / H[i];
+      if (fabs(H[i]) < EPS)
+        {
+          return -1;
+        }
+      if(tmp > max)
+        {
+          max = tmp;
+        }
+    }
+  shem.eta = max;
+  return 0;
+}
+
+int run_through_method(const std::vector<double> &  up, const std::vector<double> &  mid,
+                      const std::vector<double> &  down, const std::vector<double> &  f_v, 
+                      std::vector<double> &  alpha, std::vector<double> &  beta, 
+                      std::vector<double> &  x, int N)
+{
+  int j = 0;
+  alpha[j] = (-1) * (up[j]) / (mid[j]);
+  beta[j] = (f_v[j]) / (mid[j]);
+  for (j = 1; j < N; j++)
+    {
+      alpha[j] = (-1) * (up[j])/(mid[j] + down[j] * alpha[j - 1]);
+      beta[j] = (f_v[j] - down[j] * beta[j - 1])/(mid[j] + down[j] * alpha[j - 1]);
+    }
+  x[N] = (f_v[N] - down[N] * beta[N - 1]) / (mid[N] + down[N] * alpha[N - 1]);
+  for(j = N - 1; j >= 0; j--)
+    {
+      x[j] = x[j + 1] * alpha[j] + beta[j];
     }
   return 0;
 }
@@ -225,7 +231,7 @@ int get_residual_V(std::vector<double> V, double (*v)(double, double), const P_s
   double mu = gas.mu;
   for(j = 0; j < M + 1; j++)
     {
-      tmp = (V[j] - v(j * h, j * tau));
+      tmp = (V[j] - v(j * h, i * tau));
       norm_l2 += tmp * tmp;
       if(fabs(tmp) > norm_c)
         {

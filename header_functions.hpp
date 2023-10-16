@@ -33,4 +33,9 @@ int print_v (std::vector<double> v);
 int get_residual_V(std::vector<double> V, double (*v)(double, double), const P_she & shem, 
                   const P_gas & gas, int i, FILE * res_test1 = stdout);
 
+int run_through_method(const std::vector<double> &  up, const std::vector<double> &  mid,
+                      const std::vector<double> &  down, const std::vector<double> &  f_v, 
+                      std::vector<double> &  alpha, std::vector<double> &  beta, 
+                      std::vector<double> &  x, int N);
+
 #endif //HEADER_FUNCTIONS
