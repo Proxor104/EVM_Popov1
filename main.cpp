@@ -78,6 +78,6 @@ int main (int argc, char * argv [])
 
     fill_h0_v0 (shem, V_old, H_old, V, H, v_init, h_init);
     solve (gas, shem, V_old, H_old, V, H, F, F0);
-
+    // get_residual_V(V, );
     return 0;
 }
