@@ -209,3 +209,34 @@ int print_v (std::vector<double> v)
   printf ("\n======\n");
   return 0;
 }
+
+int get_residual_V(std::vector<double> V, double (*v)(double, double), const P_she & shem, 
+                  const P_gas & gas, int i, FILE * test)
+{
+  int j = 0; int M = shem.m_x;
+  double norm_l2 = 0;
+  double norm_c = 0;
+  double norm_w = 0;
+  double h = shem.h_x;
+  double tau = shem.tau;
+  double tmp = 0;
+  double constant = gas.p_ro;
+  double gamma = gas.p_gamma;
+  double mu = gas.mu;
+  for(j = 0; j < M + 1; j++)
+    {
+      tmp = (V[j] - v(j * h, j * tau));
+      norm_l2 += tmp * tmp;
+      if(fabs(tmp) > norm_c)
+        {
+          norm_c = fabs(tmp);
+        }
+    }
+  norm_l2 = sqrt(norm_l2);
+  fprintf(test, " ____________ ____________ ____________ ____________ ____________ ____________\n");
+  fprintf(test, "|     c      |    gamma   |     mu     |     l2     |     c      |     w      |\n");
+  fprintf(test, "|%12.3e|%12.3e|%12.3e|%12.3e|%12.3e|%12.3e|\n", 
+          constant, gamma, mu, norm_l2, norm_c, norm_w);
+  return 0;
+}
+

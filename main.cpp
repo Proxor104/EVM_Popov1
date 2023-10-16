@@ -66,6 +66,7 @@ double F0(double x, double t)
 
 int main (int argc, char * argv [])
 {
+    FILE * res_test1 = fopen ("./res_test1.txt", "w");
     P_gas gas;
     P_she shem;
     param_diff(gas);
@@ -78,6 +79,10 @@ int main (int argc, char * argv [])
 
     fill_h0_v0 (shem, V_old, H_old, V, H, v_init, h_init);
     solve (gas, shem, V_old, H_old, V, H, F, F0);
-    // get_residual_V(V, );
+    get_residual_V(V, v, shem, gas, shem.n, res_test1);
+
+    print_v(V_old);
+
+    fclose(res_test1);
     return 0;
 }

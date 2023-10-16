@@ -4,6 +4,8 @@
 #include <vector>
 #include <cmath>
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 // параметры дифференциальной задачи
 typedef struct

@@ -29,4 +29,8 @@ int get_eta (const P_gas & gas, P_she & shem, std::vector<double> & H);
 
 int print_v (std::vector<double> v);
 
+
+int get_residual_V(std::vector<double> V, double (*v)(double, double), const P_she & shem, 
+                  const P_gas & gas, int i, FILE * res_test1 = stdout);
+
 #endif //HEADER_FUNCTIONS
